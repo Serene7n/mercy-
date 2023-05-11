@@ -1,0 +1,42 @@
+pipeline {
+    agent any
+    options {
+        timestamps ()
+    
+    //    ansicolor('xterm')
+    }
+    
+    stages {
+        stage(‘1SCM’){
+            steps{
+                sh 'echo "apps latest version committed"'
+                git credentialsId: 'git-access-new', url: 'https://github.com/Serene7n/maven-web-application-new.git'
+            }
+        }
+        
+        
+        stage(‘Docker_ECR’){
+            steps {
+                sh "echo 'Buiilding and Publishg to ECR'"
+                sh '''
+                
+                GIT_COMMIT=$(git rev-parse master)
+                aws_account='679573946489.dkr.ecr.ap-south-1.amazonaws.com'
+                ecrImageName=$aws_account"/veros-intergrated-foresight"
+                
+                docker system prune -af  
+
+                docker build -t $ecrImageName:latest -t $ecrImageName:$GIT_COMMIT .
+
+                aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 679573946489.dkr.ecr.ap-south-1.amazonaws.com
+
+                docker push $ecrImageName:latest  && docker push $ecrImageName:$GIT_COMMIT
+                
+                
+                '''
+                
+
+            }
+        }
+    }
+}
